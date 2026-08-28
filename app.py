@@ -20,9 +20,13 @@ def _ebook_convert_cmd():
     """Retourne la commande ebook-convert, en tenant compte du binaire
     portable Calibre (calibre-bin/) installe au build."""
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    portable = os.path.join(base_dir, "calibre-bin", "ebook-convert")
-    if os.path.isfile(portable):
-        return [portable]
+    candidates = [
+        os.path.join(base_dir, "calibre-bin", "ebook-convert"),
+        os.path.join(base_dir, "calibre-bin", "calibre", "ebook-convert"),
+    ]
+    for p in candidates:
+        if os.path.isfile(p):
+            return [p]
     return ["ebook-convert"]
 
 

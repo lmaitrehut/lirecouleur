@@ -5,14 +5,25 @@ set -e
 
 CALIBRE_DIR="$PWD/calibre-bin"
 
+# L'installateur Calibre isole place le binaire dans <dir>/calibre/ebook-convert
+for cand in \
+    "$CALIBRE_DIR/ebook-convert" \
+    "$CALIBRE_DIR/calibre/ebook-convert"; do
+    if [ -x "$cand" ]; then
+        EC="$cand"
+        break
+    fi
+done
+
 echo "=== Verification de Calibre ==="
-if [ -x "$CALIBRE_DIR/ebook-convert" ]; then
-    echo "ebook-convert present : $CALIBRE_DIR/ebook-convert"
-    export PATH="$CALIBRE_DIR:$PATH"
-    ebook-convert --version || echo "AVERTISSEMENT: le binaire ne tourne pas (probable probleme GLIBC)"
+if [ -n "$EC" ]; then
+    echo "ebook-convert present : $EC"
+    export PATH="$(dirname "$EC"):$PATH"
+    ebook-convert --version || echo "AVERTISSEMENT: le binaire ne tourne pas (probable probleme de libs/GLIBC)"
 else
-    echo "ERREUR: ebook-convert portable introuvable dans $CALIBRE_DIR"
-    echo "Le build a peut-etre echoue a installer Calibre."
+    echo "ERREUR: ebook-convert introuvable dans $CALIBRE_DIR/calibre"
+    echo "Contenu du dossier calibre :"
+    ls -la "$CALIBRE_DIR" 2>/dev/null || echo "(calibre-bin absent)"
     exit 1
 fi
 
