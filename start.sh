@@ -1,13 +1,18 @@
 #!/usr/bin/env bash
-# Script de demarrage : verifie que Calibre est present (installe au build)
+# Script de demarrage : pointe vers le binaire Calibre portable (installe au build)
 # puis lance gunicorn. Pas de sudo ici : le runtime free n'a pas les droits.
 set -e
 
+CALIBRE_DIR="$PWD/calibre-bin"
+
 echo "=== Verification de Calibre ==="
-if command -v ebook-convert >/dev/null 2>&1; then
-    echo "ebook-convert present : $(command -v ebook-convert)"
+if [ -x "$CALIBRE_DIR/ebook-convert" ]; then
+    echo "ebook-convert present : $CALIBRE_DIR/ebook-convert"
+    export PATH="$CALIBRE_DIR:$PATH"
+    ebook-convert --version || echo "AVERTISSEMENT: le binaire ne tourne pas (probable probleme GLIBC)"
 else
-    echo "ERREUR: ebook-convert introuvable. Calibre n'a pas ete installe au build."
+    echo "ERREUR: ebook-convert portable introuvable dans $CALIBRE_DIR"
+    echo "Le build a peut-etre echoue a installer Calibre."
     exit 1
 fi
 

@@ -16,12 +16,25 @@ MAX_FILE_SIZE = 20 * 1024 * 1024  # 20 Mo
 LOG_FILE = "calibre.log"
 
 
+def _ebook_convert_cmd():
+    """Retourne la commande ebook-convert, en tenant compte du binaire
+    portable Calibre (calibre-bin/) installe au build."""
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    portable = os.path.join(base_dir, "calibre-bin", "ebook-convert")
+    if os.path.isfile(portable):
+        return [portable]
+    return ["ebook-convert"]
+
+
 def _run_calibre(args, timeout=300):
     """Lance ebook-convert en redirigeant la sortie vers un fichier
     (evite de stocker de gros stderr en memoire sur Render free)."""
+    cmd = _ebook_convert_cmd() + args
     with open(LOG_FILE, "a") as log:
+        log.write("\n--- cmd: " + " ".join(cmd) + " ---\n")
+        log.flush()
         return subprocess.run(
-            args,
+            cmd,
             stdout=log,
             stderr=log,
             timeout=timeout,
@@ -68,7 +81,7 @@ def process_epub():
 
         # Step 1: EPUB -> DOCX
         logger.info("Conversion EPUB -> DOCX")
-        result = _run_calibre(["ebook-convert", input_path, temp_docx])
+        result = _run_calibre([input_path, temp_docx])
         if result.returncode != 0:
             return jsonify({"error": "La conversion EPUB vers DOCX a echoue.<br><pre>" + _tail_log() + "</pre>"}), 500
 
@@ -86,7 +99,7 @@ def process_epub():
 
         # Step 3: DOCX -> EPUB
         logger.info("Conversion DOCX -> EPUB")
-        result = _run_calibre(["ebook-convert", colored_docx, output_path])
+        result = _run_calibre([colored_docx, output_path])
         if result.returncode != 0:
             return jsonify({"error": "La conversion DOCX vers EPUB a echoue.<br><pre>" + _tail_log() + "</pre>"}), 500
 

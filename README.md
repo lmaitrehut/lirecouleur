@@ -27,7 +27,7 @@ Ouvrir http://localhost:5000
 
 ## Deploiement sur Render (plan gratuit)
 
-Render Free ne supportant plus Docker, on utilise le runtime Python natif avec un script de build qui installe Calibre.
+Render Free ne supportant ni Docker ni l'installation via `apt-get` (systeme de fichiers en lecture seule). On utilise donc le **runtime Python natif** avec **Calibre portable** (binaire autonome installe sans root dans `calibre-bin/`) pendant le build.
 
 ### Options A - Fichier `render.yaml` (Blueprint)
 
@@ -54,9 +54,20 @@ Render Free ne supportant plus Docker, on utilise le runtime Python natif avec u
 ### Remarques plan gratuit
 
 - Render installe automatiquement les dependances Python depuis `requirements.txt`
-- Le script `build.sh` installe Calibre systeme via apt (sudo est disponible en build)
+- **Calibre est telecharge en mode "isolated"** dans `calibre-bin/` pendant le build (aucun droit root requis, le binaire embarque ses dependances)
+- Le dossier `calibre-bin/` est cree au build et persiste au runtime (comme le venv Python)
+- `start.sh` verifie la presence de `ebook-convert` puis lance gunicorn
 - `$PORT` est injecte automatiquement par Render
 - L'app s'eteindra apres 15 min d'inactivite (normal sur free) et se relancera au prochain acces
+
+### Fallback GLIBC
+
+Le binaire Calibre le plus recent exige **GLIBC >= 2.34**. Si au demarrage vous voyez un avertissement type "GLIBC_2.34 not found", l'image Render est trop ancienne. Dans ce cas, dans `build.sh`, fixez une version plus ancienne compatible :
+```
+sh /dev/stdin install_dir="$CALIBRE_DIR" isolated=y version=6.0.0
+```
+(Calibre 6.0 exige seulement GLIBC >= 2.31.)
+
 
 ### Limites hebergement gratuit (512 Mo RAM)
 
@@ -78,7 +89,7 @@ epub input -> Calibre (epub->docx) -> Python (coloration) -> Calibre (docx->epub
 - `app.py` - Backend Flask
 - `processor.py` - Coloration syllabique (python-docx + pyphen)
 - `processor_libreoffice.py` - Option LibreOffice UNO (non disponible en free, trop lourd)
-- `build.sh` - Script de build Render (installe les dependances Python)
-- `start.sh` - Script de demarrage : installe Calibre au runtime puis lance gunicorn
+- `build.sh` - Script de build Render (installe Calibre portable dans `calibre-bin/` puis les dependances Python)
+- `start.sh` - Script de demarrage : verifie `ebook-convert` portable puis lance gunicorn
 - `render.yaml` - Config Render Blueprint
 - `templates/index.html`, `static/style.css` - Frontend
