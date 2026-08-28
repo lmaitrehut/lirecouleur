@@ -47,7 +47,7 @@ Render Free ne supportant plus Docker, on utilise le runtime Python natif avec u
    - **Environment**: `Python 3`
    - **Branch**: `main`
    - **Build Command**: `./build.sh`
-   - **Start Command**: `gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 300 app:app`
+   - **Start Command**: `./start.sh`
    - **Instance Type**: `Free`
 4. **Create Web Service**
 
@@ -78,6 +78,7 @@ epub input -> Calibre (epub->docx) -> Python (coloration) -> Calibre (docx->epub
 - `app.py` - Backend Flask
 - `processor.py` - Coloration syllabique (python-docx + pyphen)
 - `processor_libreoffice.py` - Option LibreOffice UNO (non disponible en free, trop lourd)
-- `build.sh` - Script de build pour Render (installe Calibre)
+- `build.sh` - Script de build Render (installe les dependances Python)
+- `start.sh` - Script de demarrage : installe Calibre au runtime puis lance gunicorn
 - `render.yaml` - Config Render Blueprint
 - `templates/index.html`, `static/style.css` - Frontend

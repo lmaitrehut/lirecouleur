@@ -28,6 +28,16 @@ def _run_calibre(args, timeout=300):
         )
 
 
+def _tail_log(n=40):
+    """Renvoie les dernieres lignes de calibre.log pour le diagnostic."""
+    try:
+        with open(LOG_FILE) as f:
+            lines = f.read().splitlines()
+        return "\n".join(lines[-n:])
+    except Exception:
+        return ""
+
+
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -60,7 +70,7 @@ def process_epub():
         logger.info("Conversion EPUB -> DOCX")
         result = _run_calibre(["ebook-convert", input_path, temp_docx])
         if result.returncode != 0:
-            return jsonify({"error": "La conversion EPUB vers DOCX a echoue. Verifiez le format de votre fichier."}), 500
+            return jsonify({"error": "La conversion EPUB vers DOCX a echoue.<br><pre>" + _tail_log() + "</pre>"}), 500
 
         # Step 2: Traitement du DOCX
         logger.info("Traitement du document (mode=%s)", processor_mode)
@@ -78,7 +88,7 @@ def process_epub():
         logger.info("Conversion DOCX -> EPUB")
         result = _run_calibre(["ebook-convert", colored_docx, output_path])
         if result.returncode != 0:
-            return jsonify({"error": "La conversion DOCX vers EPUB a echoue."}), 500
+            return jsonify({"error": "La conversion DOCX vers EPUB a echoue.<br><pre>" + _tail_log() + "</pre>"}), 500
 
         # Step 4: Envoi du fichier
         original_name = os.path.splitext(file.filename)[0]
