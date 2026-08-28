@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: lirecouleur
+    runtime: python
+    plan: free
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 300 app:app"
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.0"

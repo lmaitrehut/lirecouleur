@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lire Couleur - ePub Processor</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container">
+    <h1>Lire Couleur</h1>
+    <p class="subtitle">Importez votre fichier ePub pour appliquer la coloration syllabique</p>
+
+    <div class="drop-zone" id="dropZone">
+      <p>Glissez votre fichier .epub ici</p>
+      <p class="small">ou cliquez pour choisir un fichier</p>
+      <input type="file" id="fileInput" accept=".epub" hidden>
+    </div>
+
+    <div class="file-info" id="fileInfo" hidden>
+      <span id="fileName"></span>
+      <button class="btn-remove" id="removeBtn">&times;</button>
+    </div>
+
+    <div class="options">
+      <label>
+        <input type="radio" name="processor" value="python" checked>
+        Traitement rapide (python-docx)
+      </label>
+      <label>
+        <input type="radio" name="processor" value="libreoffice">
+        Traitement LibreOffice (UNO)
+      </label>
+    </div>
+
+    <button class="btn-primary" id="submitBtn" disabled>
+      <span class="btn-text">Traiter le fichier</span>
+      <span class="spinner" hidden></span>
+    </button>
+
+    <div class="status" id="status" hidden>
+      <div class="progress-steps">
+        <div class="step" id="step1">1. Conversion EPUB &rarr; DOCX</div>
+        <div class="step" id="step2">2. Coloration des syllabes</div>
+        <div class="step" id="step3">3. Conversion DOCX &rarr; EPUB</div>
+      </div>
+    </div>
+
+    <div class="error" id="error" hidden></div>
+
+    <div class="download" id="download" hidden>
+      <a class="btn-download" id="downloadBtn">Telecharger le fichier</a>
+      <p class="small">Le fichier sera automatiquement supprime du serveur</p>
+    </div>
+  </div>
+
+  <script>
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const fileInfo = document.getElementById('fileInfo');
+    const fileName = document.getElementById('fileName');
+    const removeBtn = document.getElementById('removeBtn');
+    const submitBtn = document.getElementById('submitBtn');
+    const btnText = document.querySelector('.btn-text');
+    const spinner = document.querySelector('.spinner');
+    const status = document.getElementById('status');
+    const error = document.getElementById('error');
+    const download = document.getElementById('download');
+    const downloadBtn = document.getElementById('downloadBtn');
+    let selectedFile = null;
+
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      if (e.dataTransfer.files.length) selectFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener('change', () => { if (fileInput.files.length) selectFile(fileInput.files[0]); });
+
+    function selectFile(file) {
+      if (!file.name.endsWith('.epub')) { showError('Le fichier doit etre un .epub'); return; }
+      selectedFile = file;
+      fileName.textContent = file.name;
+      fileInfo.hidden = false;
+      dropZone.hidden = true;
+      submitBtn.disabled = false;
+      error.hidden = true;
+      download.hidden = true;
+    }
+
+    removeBtn.addEventListener('click', () => {
+      selectedFile = null;
+      fileInfo.hidden = true;
+      dropZone.hidden = false;
+      submitBtn.disabled = true;
+      download.hidden = true;
+    });
+
+    submitBtn.addEventListener('click', async () => {
+      if (!selectedFile) return;
+      const formData = new FormData();
+      formData.append('epub', selectedFile);
+      formData.append('processor', document.querySelector('input[name="processor"]:checked').value);
+
+      submitBtn.disabled = true;
+      btnText.hidden = true;
+      spinner.hidden = false;
+      status.hidden = false;
+      error.hidden = true;
+      download.hidden = true;
+      animateSteps();
+
+      try {
+        const resp = await fetch('/process', { method: 'POST', body: formData });
+        if (!resp.ok) {
+          const data = await resp.json();
+          showError(data.error || 'Erreur inconnue');
+          return;
+        }
+        const blob = await resp.blob();
+        const url = URL.createObjectURL(blob);
+        downloadBtn.href = url;
+        downloadBtn.download = selectedFile.name.replace('.epub', '_lirecouleur.epub');
+        download.hidden = false;
+        completeSteps();
+      } catch (e) {
+        showError('Erreur de connexion au serveur');
+      } finally {
+        submitBtn.disabled = false;
+        btnText.hidden = false;
+        spinner.hidden = true;
+      }
+    });
+
+    function showError(msg) {
+      error.textContent = msg;
+      error.hidden = false;
+      status.hidden = true;
+    }
+
+    function animateSteps() {
+      ['step1', 'step2', 'step3'].forEach(id => {
+        document.getElementById(id).className = 'step';
+      });
+      let i = 0;
+      const steps = ['step1', 'step2', 'step3'];
+      const interval = setInterval(() => {
+        if (i > 0) document.getElementById(steps[i - 1]).classList.add('done');
+        if (i < steps.length) {
+          document.getElementById(steps[i]).classList.add('active');
+          i++;
+        } else {
+          clearInterval(interval);
+        }
+      }, 800);
+    }
+
+    function completeSteps() {
+      ['step1', 'step2', 'step3'].forEach(id => {
+        const el = document.getElementById(id);
+        el.classList.remove('active');
+        el.classList.add('done');
+      });
+    }
+  </script>
+</body>
+</html>
