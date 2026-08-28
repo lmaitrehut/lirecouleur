@@ -60,13 +60,18 @@ Render Free ne supportant ni Docker ni l'installation via `apt-get` (systeme de 
 - `$PORT` est injecte automatiquement par Render
 - L'app s'eteindra apres 15 min d'inactivite (normal sur free) et se relancera au prochain acces
 
-### Fallback GLIBC
+### Version Calibre et libraries systeme
 
-Le binaire Calibre le plus recent exige **GLIBC >= 2.34**. Si au demarrage vous voyez un avertissement type "GLIBC_2.34 not found", l'image Render est trop ancienne. Dans ce cas, dans `build.sh`, fixez une version plus ancienne compatible :
-```
-sh /dev/stdin install_dir="$CALIBRE_DIR" isolated=y version=6.0.0
-```
-(Calibre 6.0 exige seulement GLIBC >= 2.31.)
+Les versions recentes de Calibre (>= 6) exigent des bibliotheques systeme
+(`libOpenGL.so.0`, `libxcb-cursor`, etc.) indisponibles sur Render free
+(systeme de fichiers en lecture seule, pas d'`apt-get`).
+
+On fixe donc **Calibre 5.44.0** (via l'argument `version=5.44.0` dans `build.sh`),
+qui ne requiert que GLIBC >= 2.27 et fonctionne sans ces libraries GUI.
+
+Si une future version 5.x pose probleme, ajustez le numéro de version dans
+`build.sh`. Si un jour Render permet d'installer les libraries systeme,
+vous pourriez revenir a une version recente.
 
 
 ### Limites hebergement gratuit (512 Mo RAM)

@@ -10,10 +10,11 @@ if [ ! -x "$CALIBRE_DIR/ebook-convert" ]; then
     echo "=== Installation de Calibre portable ==="
     # Mode "isolated" : n'ecrit que dans install_dir, sans droits root.
     # Le binaire Calibre embarque toutes ses dependances.
-    # Fallback GLCIBC : si le binaire recent ne se lance pas (GLIBC_2.34 absent),
-    # remplacer par: sh /dev/stdin install_dir="$CALIBRE_DIR" isolated=y version=6.0.0
+    # NB: les versions recentes (>=6) exigent libOpenGL/system libs indisponibles
+    # sur Render free (systeme de fichiers en lecture seule). On force une version
+    # 5.x qui evite ces checks et ne requiert que GLIBC >= 2.27.
     wget -nv -O- https://download.calibre-ebook.com/linux-installer.sh \
-        | sh /dev/stdin install_dir="$CALIBRE_DIR" isolated=y
+        | sh /dev/stdin install_dir="$CALIBRE_DIR" isolated=y version=5.44.0
     echo "Calibre installe dans $CALIBRE_DIR"
 else
     echo "Calibre portable deja present dans $CALIBRE_DIR"
