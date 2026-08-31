@@ -1,5 +1,4 @@
 flask==3.1.1
-ebooklib==0.18
 lxml==6.1.2
 pyphen==0.17.0
 gunicorn==23.0.0

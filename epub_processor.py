@@ -1,7 +1,6 @@
 import re
 import zipfile
 
-from ebooklib import epub, ITEM_DOCUMENT
 from lxml import etree
 
 import pyphen
@@ -154,7 +153,8 @@ def _rewrite_epub(input_path, output_path, modified):
         for i in items:
             if i.filename == "mimetype":
                 data = zin.read(i.filename)
-                zout.writestr(zipfile.ZipInfo("mimetype"), data, compress_type=zipfile.ZIP_STORED)
+                zout.writestr(zipfile.ZipInfo("mimetype"), data,
+                              compress_type=zipfile.ZIP_STORED)
                 break
         for i in items:
             if i.filename == "mimetype":
@@ -166,22 +166,26 @@ def _rewrite_epub(input_path, output_path, modified):
 
 
 def process_epub(input_path, output_path):
-    """Colore l'epub d'entree et ecrit l'epub colore de sortie."""
-    book = epub.read_epub(input_path)
-    modified = {}
-
-    for item in book.get_items_of_type(ITEM_DOCUMENT):
-        try:
-            content = item.get_body_content() or item.get_content()
-            root = etree.fromstring(content)
-        except Exception:
-            continue
-        try:
-            _colorer_document(root)
-            modified[item.get_name()] = etree.tostring(
-                root, xml_declaration=True, encoding="utf-8", standalone=True)
-        except Exception:
-            continue
-
-    _rewrite_epub(input_path, output_path, modified)
+    """Colore tous les fichiers XHTML de l'epub (zip) et re-ecrit le resultat.
+    Fonctionne directement sur le zip, sans ebooklib, pour preserver au maximum
+    la structure originale (metadata, spine, css, images...)."""
+    modify = {}
+    with zipfile.ZipFile(input_path, "r") as zin:
+        for i in zin.infolist():
+            name = i.filename.lower()
+            doc_ext = name.endswith((".xhtml", ".html", ".htm"))
+            if not doc_ext:
+                continue
+            data = zin.read(i.filename)
+            try:
+                root = etree.fromstring(data)
+            except Exception:
+                continue
+            try:
+                _colorer_document(root)
+            except Exception:
+                continue
+            modify[i.filename] = etree.tostring(
+                root, xml_declaration=True, encoding="utf-8")
+    _rewrite_epub(input_path, output_path, modify)
     return output_path
