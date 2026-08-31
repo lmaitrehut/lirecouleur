@@ -53,23 +53,40 @@ def process_docx(input_path, output_path):
         if not p.text.strip():
             continue
         mots = p.text.split()
-        p.text = ""
+        p.clear()  # supprime proprement tous les runs existants
         for idx_mot, mot in enumerate(mots):
             if not mot:
                 continue
             syllabes = _syllabes(mot)
-            est_premiere = True
+            premiere_lettre = True  # premiere lettre du mot -> verte
             for idx_syl, syl in enumerate(syllabes):
                 couleur = COULEURS[idx_syl % len(COULEURS)]
-                for char in syl:
-                    if est_premiere and char.isalpha():
-                        run = p.add_run(char.upper())
-                        run.font.color.rgb = VERT
-                        est_premiere = False
+                # Gestion de la toute premiere lettre (verte + majuscule)
+                if premiere_lettre:
+                    # trouver la premiere lettre dans la syllabe (ignore ponctuation)
+                    pos = next((i for i, c in enumerate(syl) if c.isalpha()), None)
+                    if pos is not None:
+                        # run pour la premiere lettre (vert + majuscule)
+                        r = p.add_run(syl[pos].upper())
+                        r.font.color.rgb = VERT
+                        # reste avant/du milieu en couleur de syllabe
+                        if pos > 0:
+                            rpre = p.add_run(syl[:pos])
+                            rpre.font.color.rgb = couleur
+                        # reste apres la premiere lettre en couleur de syllabe
+                        if pos + 1 < len(syl):
+                            rapp = p.add_run(syl[pos + 1:])
+                            rapp.font.color.rgb = couleur
+                        premiere_lettre = False
                     else:
-                        run = p.add_run(char)
-                        if char.isalnum():
-                            run.font.color.rgb = couleur
+                        # ponctuation seule dans la syllabe (ex: "'")
+                        r = p.add_run(syl)
+                        r.font.color.rgb = couleur
+                else:
+                    # autres syllabes : un seul run colore
+                    r = p.add_run(syl)
+                    if any(c.isalnum() for c in syl):
+                        r.font.color.rgb = couleur
             if idx_mot < len(mots) - 1:
                 p.add_run("  ")
 

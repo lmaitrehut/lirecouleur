@@ -8,13 +8,16 @@ mkdir -p "$CALIBRE_DIR"
 
 if [ ! -x "$CALIBRE_DIR/ebook-convert" ]; then
     echo "=== Installation de Calibre portable ==="
-    # Mode "isolated" : n'ecrit que dans install_dir, sans droits root.
-    # Le binaire Calibre embarque toutes ses dependances.
-    # NB: les versions recentes (>=6) exigent libOpenGL/system libs indisponibles
-    # sur Render free (systeme de fichiers en lecture seule). On force une version
-    # 5.x qui evite ces checks et ne requiert que GLIBC >= 2.27.
-    wget -nv -O- https://download.calibre-ebook.com/linux-installer.sh \
-        | sh /dev/stdin install_dir="$CALIBRE_DIR" isolated=y version=5.44.0
+    # On telecharge directement le tarball binaire (aucun check systeme,
+    # pas de libOpenGL requise a l'installation). Le binaire embarque
+    # toutes ses dependances. Version recente requise pour que les couleurs
+    # DOCX -> EPUB soient preservees (bug Calibre corrige apres la v5.44).
+    # Pour une version fixe, remplacer par exemple :
+    #   CALIBRE_URL="https://download.calibre-ebook.com/7.5.1/calibre-7.5.1-x86_64.txz"
+    CALIBRE_URL="https://calibre-ebook.com/dist/linux-x86_64"
+    wget -nv -O "$CALIBRE_DIR/calibre.txz" "$CALIBRE_URL"
+    tar -xJf "$CALIBRE_DIR/calibre.txz" -C "$CALIBRE_DIR"
+    rm -f "$CALIBRE_DIR/calibre.txz"
     echo "Calibre installe dans $CALIBRE_DIR"
 else
     echo "Calibre portable deja present dans $CALIBRE_DIR"
