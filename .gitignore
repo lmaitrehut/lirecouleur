@@ -1,5 +1,5 @@
-calibre-bin/
 __pycache__/
 *.pyc
-calibre.log
+calibre-bin/
+*.log
 .DS_Store
