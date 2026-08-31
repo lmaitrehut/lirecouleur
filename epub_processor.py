@@ -80,6 +80,10 @@ def _colorer_paragraphe(p):
         return
 
     # Supprimer tous les enfants et attributs
+    parent_ns = ""
+    if isinstance(p.tag, str) and p.tag.startswith("{"):
+        parent_ns = p.tag.split("}")[0] + "}"
+    span_tag = parent_ns + "span"
     for child in list(p):
         p.remove(child)
     p.text = None
@@ -94,36 +98,50 @@ def _colorer_paragraphe(p):
             # On conserve le(s) espace(s). L'utilisateur veut le DOUBLEMENT des
             # espaces entre les mots : on transforme un espace simple en double.
             nb = tok.count(" ")
-            span = etree.SubElement(p, "{%s}span" % XHTML)
+            span = etree.SubElement(p, span_tag)
             span.text = " " * (nb * 2)
         else:
             parts = _syllabe_xml(tok)
             for txt, couleur in parts:
-                span = etree.SubElement(p, "{%s}span" % XHTML)
+                span = etree.SubElement(p, span_tag)
                 if couleur:
                     span.set("style", "color:%s;" % couleur)
                 span.text = txt
 
 
+def _localname(tag):
+    """Retourne le nom local d'un tag lxml (ignore le namespace)."""
+    if tag is None:
+        return ""
+    if hasattr(tag, "localname"):
+        return tag.localname
+    if isinstance(tag, str):
+        return tag.split("}")[-1]
+    return str(tag)
+
+
 def _colorer_document(root):
-    """Parcourt tous les elements de paragraphe du document XHTML."""
-    body_tags = ["{%s}p" % XHTML, "{%s}div" % XHTML, "{%s}h1" % XHTML,
-                 "{%s}h2" % XHTML, "{%s}h3" % XHTML, "{%s}h4" % XHTML,
-                 "{%s}li" % XHTML, "{%s}td" % XHTML]
-    block_tags = set(body_tags)
-    block_tags.discard(None)
-    # Ne traiter que les elements sans descendants de type bloc.
-    for tag in body_tags:
-        for el in list(root.iter(tag)):
-            descendants = list(el.iter())
-            if len(descendants) > 1 and any(
-                d.tag in block_tags for d in descendants[1:]
-            ):
+    """Parcourt tous les elements de paragraphe du document XHTML,
+    independamment du namespace."""
+    block_names = {"p", "div", "h1", "h2", "h3", "h4", "li", "td"}
+    for el in list(root.iter()):
+        name = _localname(el.tag)
+        if name not in block_names:
+            continue
+        # ignorer les conteneurs ayant des descendants de type bloc
+        has_block_child = False
+        for d in el.iter():
+            if d is el:
                 continue
-            try:
-                _colorer_paragraphe(el)
-            except Exception:
-                continue
+            if _localname(d.tag) in block_names:
+                has_block_child = True
+                break
+        if has_block_child:
+            continue
+        try:
+            _colorer_paragraphe(el)
+        except Exception:
+            continue
 
 
 def _rewrite_epub(input_path, output_path, modified):
